@@ -1,48 +1,76 @@
 from typing import List
 from langchain.vectorstores import FAISS
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.vectorstores import FAISS
 from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from langchain.embeddings import OpenAIEmbeddings
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.pydantic_v1 import BaseModel, Field
+from langchain_core.output_parsers import BaseOutputParser
 
-# example_query = "สมมุติให้คุณเป็นอาจารย์ที่นำข้อสอบนี้ไปออกเป็นข้อสอบฉบับใหม่ของตัวเองที่มีเนื้อหา แต่ละข้อ คล้ายเคียงจากนี้ เช็คด้วยถ้าเหมือน เปลี่ยนโจทย์ เท่าจำนวนข้อที่มี พร้อมเฉลยแบบละเอียดที่เข้าใจง่าย เป็นภาษาไทย พร้อมตรวจทานวิธีคิดว่าคำตอบที่เฉลยละเอียดตรงกับคำตอบที่ถูกต้องหรือไม่ ถ้าไม่มีคำตอบจงสร้างโจทย์ข้อใหม่ที่มีคำตอบ และตอบให้อยู่ในรูป format json เช่น topic ( มีครั้งเดียวในไฟล์ละอยู่บนสุด เป็นชื่อหัวข้อของไฟล์นั้น ) , describe ( ถ้ามีคำคำสั่ง ขอคำอธิบายที่ชัดเจนและยาวพอที่จะอธิบายได้ครอบครุม ) และที่มีทุกข้อคือ question: , options , answer , explanation และ {type (  math, thai , eng , social)} โดยคำตอบเป็น ช้อย 1 2 3 4 และ เฉลยเป็น เลข 1 2 3 4  และ ตั้งหัวข้อจาก หัวข้อที่มีมาให้ ถ้าไม่มีให้ตั้งจากเนื้อหาโดยรวมแบบสั้นๆ และกระซับได้ใจความ และ สลับลำดับของข้อโจทย์และเรียงเลขข้อใหม่โดยเริ่มที่ 1 "
 
+system_prompt = "you are a exam question generating tutor, **you always answer in thai language**. **you always answer in json format** you are task with generating question from 4 categories (math, thai, english, legal) each question consisted of a question, 4 options, 1 correct answer and an explanation."
 
-system_prompt = "you are a exam question generating tutor, **you always answer in thai language**. you are task with generating question from 4 categories (math, thai, english, social) each question consisted of a question, 4 options, 1 correct answer and an explanation."
 format_prompt = """
-answer in JSON format:
-[{
-    question: string,
-    options: [string],
-    answer: string,
-    explanation: string
-}, {...}]
+The output should be formatted as a JSON instance that conforms to the JSON schema below.
+
+As an example, for the schema {"properties": {"foo": {"title": "Foo", "description": "a list of strings", "type": "array", "items": {"type": "string"}}}, "required": ["foo"]}
+the object {"foo": ["bar", "baz"]} is a well-formatted instance of the schema. The object {"properties": {"foo": ["bar", "baz"]}} is not well-formatted.
+
+Here is the output schema:
+{ "properties": { "question": { "title": "Question", "description": "The question text", "type": "string" }, "options": { "title": "Options", "description": "The list of answer options", "type": "array", "items": { "type": "string" } }, "answer": { "title": "Answer", "description": "The correct answer", "type": "string" }, "explanation": { "title": "Explanation", "description": "The explanation of the correct answer", "type": "string" }, "question_category": { "title": "Question Category", "description": "The category of the question", "type": "string" } }, "required": ["question", "options", "answer", "explanation", "question_category"] }
 """
+
+
+class Question(BaseModel):
+    question: str
+    options: List[str]
+    answer: str
+    explanation: str
+    question_category: str
+
+
+memory = ConversationBufferMemory(
+    memory_key='chat_history', return_messages=True)
 
 embeddings = OpenAIEmbeddings()
 
-new_vector_store = FAISS.load_local(
+store = FAISS.load_local(
     "faiss_index", embeddings, allow_dangerous_deserialization=True)
 
-llm = ChatOpenAI(temperature=0.7, model_name="gpt-4o")
-memory = ConversationBufferMemory(
-    memory_key='chat_history', return_messages=True)
-chain = ConversationalRetrievalChain.from_llm(
-    llm=llm,
-    chain_type="stuff",
-    retriever=new_vector_store.as_retriever(),
-    memory=memory
+retriever = store.as_retriever(
+    search_type="similarity",  # Also test "similarity", "mmr"
+    search_kwargs={"k": 1},)
+
+llm = ChatOpenAI(temperature=0.7, model_name="gpt-3.5-turbo-16k")
+structured_llm = llm.with_structured_output(Question)
+
+
+converstion = ConversationalRetrievalChain.from_llm(
+    llm=structured_llm,
+    retriever=retriever,
+    memory=memory,
 )
+
+chain = converstion
 
 
 def run(query: str) -> str:
+    # output = chain.invoke("generate 1 question in math catergory",)
     output = chain.invoke(
-        {"question": query, "chat_history": [system_prompt, format_prompt]})
+        # Add the custom parser here })
+        {"question": query, "chat_history": [
+            system_prompt, format_prompt]})
+    print(output)
+    output = structured_llm.invoke(f"turn this into JSON format ${output}")
+    print(output)
+
     return output
 
 
 if __name__ == "__main__":
     print("--------------------------")
     print(run("generate 3 question in math catergory"))
+    # print(structured_llm.invoke("generate 3 question"))
