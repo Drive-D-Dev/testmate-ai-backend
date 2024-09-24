@@ -88,12 +88,15 @@ def validate_output(json_data):
         return None
 
 
-query = "Generate 3 questions"
-category = "math"
-json_output = run_rag_model(query, category)
-strip_output = str(json_output.content.strip('```').strip('json'))
+def run(query: str, category: str) -> str:
+    print(query, category)
 
-# Validate the output
-validated_output = validate_output(strip_output)
-if validated_output:
-    print(validated_output.model_dump_json(indent=2))
+    json_output = run_rag_model(query, category)
+    strip_output = str(json_output.content.strip('```').strip('json'))
+
+    # Validate the output
+    validated_output = validate_output(strip_output)
+    if validated_output:
+        return validated_output.model_dump_json(indent=2)
+
+    return {"success": False}
