@@ -35,10 +35,6 @@ class QuestionList(BaseModel):
 
 embeddings = OpenAIEmbeddings()
 
-vectorstore = FAISS.load_local(
-    'faiss_index', embeddings, allow_dangerous_deserialization=True)
-retriever = vectorstore.as_retriever()
-
 prompt_template = PromptTemplate(
     input_variables=["context", "category"],
     template="""
@@ -66,7 +62,11 @@ chain = prompt_template | llm
 # Function to run RAG
 
 
-def run_rag_model(query, category):
+def run_rag_model(query, category, subcategory):
+    vectorstore = FAISS.load_local(
+        f'vector_db\{category}\{subcategory}', embeddings, allow_dangerous_deserialization=True)
+    retriever = vectorstore.as_retriever()
+
     # Retrieve relevant context
     docs = retriever.get_relevant_documents(query)
     context = " ".join([doc.page_content for doc in docs])
@@ -88,11 +88,11 @@ def validate_output(json_data):
         return None
 
 
-def run(query: str, category: str) -> str:
-    print(query, category)
-
-    json_output = run_rag_model(query, category)
+def run(query: str, category: str, subcategory: str) -> str:
+    json_output = run_rag_model(query, category, subcategory)
+    print(json_output)
     strip_output = str(json_output.content.strip('```').strip('json'))
+    print(strip_output)
 
     # Validate the output
     validated_output = validate_output(strip_output)
@@ -100,3 +100,7 @@ def run(query: str, category: str) -> str:
         return validated_output.model_dump_json(indent=2)
 
     return {"success": False}
+
+
+if __name__ == "__main__":
+    print(run("generate 3 question", "math", "data_analysis"))
