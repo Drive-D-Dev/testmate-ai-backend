@@ -6,23 +6,27 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 import json
-from typing import List
+from typing import List, Optional
 from langchain.chains.openai_functions import create_structured_output_chain
 from langchain_community.chat_models import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from pydantic import BaseModel, Field
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
+from pydantic.json import pydantic_encoder
 
 
 class Question(BaseModel):
-    question: str = Field(..., description="The text of the question")
-    options: List[str] = Field(...,
-                               description="The available options for the question")
-    answer: str = Field(..., description="The correct answer for the question")
-    explanation: str = Field(..., description="The explanation for the answer")
-    question_category: str = Field(...,
-                                   description="The category of the question")
+    question: Optional[str] = Field(...,
+                                    description="The text of the question")
+    options: Optional[List[str]] = Field(...,
+                                         description="The available options for the question")
+    answer: Optional[str] = Field(...,
+                                  description="The correct answer for the question")
+    explanation: Optional[str] = Field(...,
+                                       description="The explanation for the answer")
+    question_category: Optional[str] = Field(...,
+                                             description="The category of the question")
 
 
 class QuestionList(BaseModel):
@@ -43,18 +47,18 @@ prompt_template = PromptTemplate(
         questions: [
             "question": <generated question>,
             "options": [<generated options>],
-            "explanation": <generated explanation>,
             "answer": <generated answer>,
+            "explanation": <generated explanation>,
             "question_category": {category}
         ]
     }}
 
     Context: {context}
     """,
-    output_parser=JsonOutputParser(pydantic_object=QuestionList),
+    # output_parser=JsonOutputParser(pydantic_object=QuestionList),
 )
 
-llm = ChatOpenAI(model="gpt-4o")
+llm = ChatOpenAI(model="gpt-4o-mini")
 
 # Step 5: Create LLMChain
 chain = prompt_template | llm
@@ -77,21 +81,19 @@ def run_rag_model(query, category):
 
 def validate_output(json_data):
     try:
-        validated_output = Question.model_validate_json(json_data)
+        validated_output = QuestionList.model_validate_json(json_data)
         return validated_output
     except Exception as e:
         print(f"Validation error: {e}")
         return None
 
 
-query = "Explain the concept of climate change"
+query = "Generate 3 questions"
 category = "math"
 json_output = run_rag_model(query, category)
-print(json_output)
-print(type(json_output))
 strip_output = str(json_output.content.strip('```').strip('json'))
-print(json_output.content.strip('```').strip('json'))
-# # Validate the output
+
+# Validate the output
 validated_output = validate_output(strip_output)
 if validated_output:
     print(validated_output.model_dump_json(indent=2))
