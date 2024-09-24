@@ -89,6 +89,7 @@ def validate_output(json_data):
 
 
 def run(query: str, category: str) -> str:
+    print(query, category)
 
     json_output = run_rag_model(query, category)
     strip_output = str(json_output.content.strip('```').strip('json'))
