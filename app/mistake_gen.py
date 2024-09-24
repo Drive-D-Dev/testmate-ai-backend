@@ -36,14 +36,14 @@ class QuestionList(BaseModel):
 embeddings = OpenAIEmbeddings()
 
 prompt_template = PromptTemplate(
-    input_variables=["context", "category"],
+    input_variables=["context", "category", "query"],
     template="""
-    Based on the context below, generate a JSON object in the following format:
+    Based on the context below, {query} a JSON object in the following format:
     {{
         questions: [
-            "question": <generated question>,
-            "options": [<generated options>],
-            "answer": <generated answer>,
+            "question": <generated question >,
+            "options": [<generated options only dont use ก. ข. ค. ง.],
+            "answer": <generated answer choie only in str "1","2","3","4">,
             "explanation": <generated explanation>,
             "question_category": {category}
         ]
@@ -54,7 +54,7 @@ prompt_template = PromptTemplate(
     # output_parser=JsonOutputParser(pydantic_object=QuestionList),
 )
 
-llm = ChatOpenAI(model="gpt-4o-mini")
+llm = ChatOpenAI(model="gpt-4o")
 
 # Step 5: Create LLMChain
 chain = prompt_template | llm
@@ -64,7 +64,7 @@ chain = prompt_template | llm
 
 def run_rag_model(query, category, subcategory):
     vectorstore = FAISS.load_local(
-        f'vector_db\{category}\{subcategory}', embeddings, allow_dangerous_deserialization=True)
+        f'vector_db/{category}/{subcategory}', embeddings, allow_dangerous_deserialization=True)
     retriever = vectorstore.as_retriever()
 
     # Retrieve relevant context
@@ -74,6 +74,7 @@ def run_rag_model(query, category, subcategory):
     # Generate structured output
     structured_output = chain.invoke({
         "context": context,
+        "query": query,
         "category": category
     })
     return structured_output
@@ -90,7 +91,7 @@ def validate_output(json_data):
 
 def run(query: str, category: str, subcategory: str) -> str:
     json_output = run_rag_model(query, category, subcategory)
-    print(json_output)
+    # print(json_output)
     strip_output = str(json_output.content.strip('```').strip('json'))
     print(strip_output)
 
@@ -103,4 +104,4 @@ def run(query: str, category: str, subcategory: str) -> str:
 
 
 if __name__ == "__main__":
-    print(run("generate 3 question", "math", "data_analysis"))
+    print(run("make 10 new exam questions have question ", "thai", "logic"))
