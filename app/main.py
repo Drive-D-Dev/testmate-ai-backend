@@ -17,7 +17,7 @@ async def hello():
 
 
 @app.post("/generate_mistake")
-async def update_item(query: str, category: str):
-    results = mistake_gen.run(query, category)
+async def update_item(query: str, category: str, subcategory: str):
+    results = mistake_gen.run(query, category, subcategory)
 
     return Response(content=results)
