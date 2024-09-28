@@ -6,31 +6,14 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.agents.agent_types import AgentType
 from langchain.memory import ConversationBufferMemory
 import json
-from typing import List, Optional
 from langchain.chains.openai_functions import create_structured_output_chain
 from langchain_community.chat_models import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
-from pydantic import BaseModel, Field
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic.json import pydantic_encoder
 
-
-class Question(BaseModel):
-    question: Optional[str] = Field(...,
-                                    description="The text of the question")
-    options: Optional[List[str]] = Field(...,
-                                         description="The available options for the question")
-    answer: Optional[str] = Field(...,
-                                  description="The correct answer for the question")
-    explanation: Optional[str] = Field(...,
-                                       description="The explanation for the answer")
-    question_category: Optional[str] = Field(...,
-                                             description="The category of the question")
-
-
-class QuestionList(BaseModel):
-    questions: List[Question]
+from lib.model import QuestionList
 
 
 embeddings = OpenAIEmbeddings()
