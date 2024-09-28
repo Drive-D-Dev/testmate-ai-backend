@@ -12,7 +12,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic.json import pydantic_encoder
-from lib.validation import validate_question_list
+from libs.validation import validate_question_list
 
 
 prompt_template = PromptTemplate(

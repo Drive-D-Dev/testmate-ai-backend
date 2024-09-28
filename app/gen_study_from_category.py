@@ -13,7 +13,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic.json import pydantic_encoder
 
-from lib.model import QuestionList
+from libs.model import QuestionList
 
 
 embeddings = OpenAIEmbeddings()
