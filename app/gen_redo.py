@@ -1,18 +1,6 @@
-from langchain.chat_models import ChatOpenAI
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.memory import ConversationBufferMemory
-from langchain.chains import ConversationalRetrievalChain
-from langchain.agents.agent_types import AgentType
-from langchain.memory import ConversationBufferMemory
-import json
-from langchain.chains.openai_functions import create_structured_output_chain
 from langchain_community.chat_models import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
-from pydantic.json import pydantic_encoder
-from libs.validation import validate_question_list
+from app.libs.validation import validate_question_list
 
 
 prompt_template = PromptTemplate(
@@ -26,6 +14,7 @@ prompt_template = PromptTemplate(
             "answer": <generated answer choie only in str "1","2","3","4">,
             "explanation": <generated explanation>,
             "question_category": <generated category>
+            "question_subcategory": <generated subcategory>
         ]
     }}
 
@@ -39,10 +28,12 @@ chain = prompt_template | llm
 
 
 def run(query: str) -> str:
-    json_output = chain.invoke({
-        "query": query,
-    })
-    strip_output = str(json_output.content.strip('```').strip('json'))
+    json_output = chain.invoke(
+        {
+            "query": query,
+        }
+    )
+    strip_output = str(json_output.content.strip("```").strip("json"))
     print(strip_output)
 
     # Validate the output
@@ -54,7 +45,9 @@ def run(query: str) -> str:
 
 
 if __name__ == "__main__":
-    print(run("""{
+    print(
+        run(
+            """{
   "questions": [
     {
       "question": "เข็ม : ? จักร : ผ้า",
@@ -93,4 +86,6 @@ if __name__ == "__main__":
       "question_category": "thai"
     }
   ]
-"""))
+"""
+        )
+    )

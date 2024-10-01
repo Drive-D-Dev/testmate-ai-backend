@@ -13,13 +13,13 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 from pydantic.json import pydantic_encoder
 
-from libs.model import QuestionList
+from app.libs.model import QuestionList
 
 
 embeddings = OpenAIEmbeddings()
 
 prompt_template = PromptTemplate(
-    input_variables=["context", "category", "query"],
+    input_variables=["context", "category", "query", "subcategory"],
     template="""
     Based on the context below, {query} a JSON object in the following format:
     {{
@@ -28,7 +28,9 @@ prompt_template = PromptTemplate(
             "options": [<generated options only dont use ก. ข. ค. ง.],
             "answer": <generated answer choie only in str "1","2","3","4">,
             "explanation": <generated explanation>,
-            "question_category": {category}
+            "question_category": {category},
+            "question_subcategory": {subcategory}
+            
         ]
     }}
 
@@ -47,7 +49,10 @@ chain = prompt_template | llm
 
 def run_rag_model(query, category, subcategory):
     vectorstore = FAISS.load_local(
-        f'vector_db/{category}/{subcategory}', embeddings, allow_dangerous_deserialization=True)
+        f"app/vector_db/{category}/{subcategory}",
+        embeddings,
+        allow_dangerous_deserialization=True,
+    )
     retriever = vectorstore.as_retriever()
 
     # Retrieve relevant context
@@ -55,11 +60,14 @@ def run_rag_model(query, category, subcategory):
     context = " ".join([doc.page_content for doc in docs])
 
     # Generate structured output
-    structured_output = chain.invoke({
-        "context": context,
-        "query": query,
-        "category": category
-    })
+    structured_output = chain.invoke(
+        {
+            "context": context,
+            "query": query,
+            "category": category,
+            "subcategory": subcategory,
+        }
+    )
     return structured_output
 
 
@@ -75,8 +83,8 @@ def validate_output(json_data):
 def run(query: str, category: str, subcategory: str) -> str:
     json_output = run_rag_model(query, category, subcategory)
     # print(json_output)
-    strip_output = str(json_output.content.strip('```').strip('json'))
-    print(strip_output)
+    strip_output = str(json_output.content.strip("```").strip("json"))
+    # print(strip_output)
 
     # Validate the output
     validated_output = validate_output(strip_output)
