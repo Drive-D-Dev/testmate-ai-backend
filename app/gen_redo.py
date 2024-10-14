@@ -17,7 +17,6 @@ prompt_template = PromptTemplate(
             "question_subcategory": <generated subcategory>
         ]
     }}
-    Request: for each question_category and question_subcategory given will be generate at least 1 questions
     Context: generate set of similar questions as these: {query}
     """,
 )
