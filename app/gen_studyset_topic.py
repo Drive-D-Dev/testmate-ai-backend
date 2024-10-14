@@ -6,7 +6,7 @@ import json
 prompt_template = PromptTemplate(
     input_variables=["query"],
     template="""
-    Base on the context below, a JSON object in the following format:
+    Base on the context below, a JSON object in the following format in thai language:
     {{
         topic: generated topic,
         describe: generated topic description
