@@ -17,6 +17,7 @@ prompt_template = PromptTemplate(
             "question_subcategory": <generated subcategory>
         ]
     }}
+    Note that question_category and question_subcategory will be one of the input questions do not make new category and subcategory.
 
     Context: generate set of similar questions as these: {query}
     """,
