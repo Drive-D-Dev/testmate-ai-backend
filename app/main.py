@@ -4,6 +4,7 @@ from fastapi.responses import JSONResponse
 import app.gen_redo as gen_redo
 import app.gen_study_from_category as gen_study_from_category
 import app.gen_multiple_exam as gen_multiple_exam
+import json
 
 os.environ["OPENAI_API_KEY"] = os.environ.get("OPENAI_API_KEY", "sk-********")
 
@@ -36,8 +37,8 @@ async def generate_multiple_exam(data: dict = Body(...)):
 
 
 @app.post("/gen_redo")
-async def update_item(data: str = Body(...)):
-    query = data
+async def update_item(data: dict = Body(...)):
+    query = json.dumps(data)
     print(query)
     results = gen_redo.run(query)
 
