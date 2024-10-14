@@ -18,7 +18,7 @@ prompt_template = PromptTemplate(
         ]
     }}
 
-    Context: generate set of similar questions as these: {query}
+    Context: generate set of similar questions as these and all subcategory are generate: {query}
     """,
 )
 
